@@ -393,7 +393,7 @@
         </div>
     </div>
 
-    <!-- View / Cancel Details Modal -->
+    <!-- View Details Modal (ONLY VIEWING FOR CLIENTS) -->
     <div id="detailsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-100">
             <button onclick="closeDetailsModal()" class="absolute left-4 top-4 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
@@ -437,13 +437,9 @@
                 </div>
             </div>
 
-            <div class="mt-5 flex items-center space-x-3 space-x-reverse">
-                <button onclick="closeDetailsModal()" class="w-1/2 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition">
+            <div class="mt-5">
+                <button onclick="closeDetailsModal()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition">
                     بستن
-                </button>
-                <button id="cancelBookingBtn" onclick="cancelCurrentBooking()" class="w-1/2 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition flex items-center justify-center space-x-1.5 space-x-reverse">
-                    <i class="fa-solid fa-trash-can"></i>
-                    <span>لغو این رزرو</span>
                 </button>
             </div>
         </div>
@@ -993,16 +989,6 @@
             await saveBooking(selectedSlotKey, bookingData);
             closeModal();
             showToast('نوبت با موفقیت ثبت گردید');
-        }
-
-        async function cancelCurrentBooking() {
-            if (!selectedSlotKey) return;
-
-            if (confirm('آیا از لغو این نوبت رزرو شده اطمینان دارید؟')) {
-                await removeBooking(selectedSlotKey);
-                closeDetailsModal();
-                showToast('رزرو با موفقیت لغو شد');
-            }
         }
 
         function closeModal() {
