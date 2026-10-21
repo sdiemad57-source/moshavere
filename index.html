@@ -288,7 +288,7 @@
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 mt-8">
         <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-            سامانه رزرو وقت مرکز مشاوره - ذخیره‌سازی ابری و همگام‌سازی لحظه‌ای (پایدار روی شبکه ایران)
+            سامانه رزرو وقت مرکز مشاوره - ذخیره‌سازی ابری امن و پایدار بدون نیاز به VPN
         </div>
     </footer>
 
@@ -455,27 +455,12 @@
         <span id="toastMessage">عملیات با موفقیت انجام شد</span>
     </div>
 
-    <!-- JavaScript Application Logic with Firebase Stable Long Polling Integration -->
-    <script type="module">
-        // Import Firebase SDKs
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCCSrvlov2utpkeH_CnwrqYmgue2EKKVmAI",
-            authDomain: "moshavere-db.firebaseapp.com",
-            projectId: "moshavere-db",
-            storageBucket: "moshavere-db.appspot.com",
-            messagingSenderId: "131310266457",
-            appId: "1:131310266457:web:e2eb395dd3c69f1de42948"
-        };
-
-        // Initialize Firebase with Long Polling enabled for Iranian Networks
-        const app = initializeApp(firebaseConfig);
-        const db = initializeFirestore(app, {
-            experimentalForceLongPolling: true
-        });
+    <!-- JavaScript Application Logic with JSONbin.io REST API -->
+    <script>
+        // JSONbin.io Configuration
+        const BIN_ID = "6ad87543ac6210605a44e878";
+        const MASTER_KEY = "$2a$10$wuLIfiqPxtcqFQ8TnDvp.eKuM99RBcx7UPVr2ZwDpEsa5kWS05o02";
+        const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
         // State Management Variables
         let currentWeekOffset = 0;
@@ -603,21 +588,54 @@
             return `${j[0]}-${String(j[1]).padStart(2,'0')}-${String(j[2]).padStart(2,'0')}`;
         }
 
-        // Real-time Firestore Sync Setup
-        function initRealtimeSync() {
-            onSnapshot(collection(db, "bookings"), (snapshot) => {
-                globalBookingsCache = {};
-                snapshot.forEach((docSnap) => {
-                    globalBookingsCache[docSnap.id] = docSnap.data();
+        // Fetch Data from JSONbin
+        async function fetchBookingsData() {
+            try {
+                const response = await fetch(JSONBIN_URL, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': MASTER_KEY
+                    }
                 });
-                renderWeekTabs();
-                renderSelectedDaySchedule();
-                if (isAdminView) {
-                    renderAdminBookingsList();
+                if (response.ok) {
+                    const data = await response.json();
+                    globalBookingsCache = data.record && data.record.bookings ? data.record.bookings : {};
                 }
-            }, (error) => {
-                console.error("Error listening to realtime updates: ", error);
-            });
+            } catch (e) {
+                console.error("Error fetching data: ", e);
+            }
+            renderWeekTabs();
+            renderSelectedDaySchedule();
+            if (isAdminView) {
+                renderAdminBookingsList();
+            }
+        }
+
+        // Save Data to JSONbin
+        async function saveBookingsData(newBookings) {
+            try {
+                const response = await fetch(JSONBIN_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': MASTER_KEY
+                    },
+                    body: JSON.stringify({ bookings: newBookings })
+                });
+                if (response.ok) {
+                    globalBookingsCache = newBookings;
+                    renderWeekTabs();
+                    renderSelectedDaySchedule();
+                    if (isAdminView) {
+                        renderAdminBookingsList();
+                    }
+                } else {
+                    showToast('خطا در ذخیره‌سازی اطلاعات', 'error');
+                }
+            } catch (e) {
+                console.error("Error saving data: ", e);
+                showToast('خطا در ارتباط با سرور', 'error');
+            }
         }
 
         function getAllBookings() {
@@ -625,21 +643,15 @@
         }
 
         async function saveBooking(key, bookingData) {
-            try {
-                await setDoc(doc(db, "bookings", key), bookingData);
-            } catch (e) {
-                console.error("Error saving booking: ", e);
-                showToast('خطا در ارتباط با دیتابیس', 'error');
-            }
+            let bookings = getAllBookings();
+            bookings[key] = bookingData;
+            await saveBookingsData(bookings);
         }
 
         async function removeBooking(key) {
-            try {
-                await deleteDoc(doc(db, "bookings", key));
-            } catch (e) {
-                console.error("Error removing booking: ", e);
-                showToast('خطا در حذف نوبت', 'error');
-            }
+            let bookings = getAllBookings();
+            delete bookings[key];
+            await saveBookingsData(bookings);
         }
 
         // Render Navigation Tabs
@@ -770,7 +782,7 @@
         }
 
         // Toggle View Mode & Admin Authentication Control
-        window.handleViewToggleClick = function() {
+        function handleViewToggleClick() {
             if (!isAdminView) {
                 if (!currentLoggedInAdmin) {
                     openAdminLoginModal();
@@ -805,17 +817,17 @@
         }
 
         // Admin Login Handlers
-        window.openAdminLoginModal = function() {
+        function openAdminLoginModal() {
             document.getElementById('adminUsernameInput').value = '';
             document.getElementById('adminPasswordInput').value = '';
             document.getElementById('adminLoginModal').classList.remove('hidden');
         }
 
-        window.closeAdminLoginModal = function() {
+        function closeAdminLoginModal() {
             document.getElementById('adminLoginModal').classList.add('hidden');
         }
 
-        window.handleAdminLoginSubmit = function(e) {
+        function handleAdminLoginSubmit(e) {
             e.preventDefault();
             const user = document.getElementById('adminUsernameInput').value.trim();
             const pass = document.getElementById('adminPasswordInput').value.trim();
@@ -831,7 +843,7 @@
         }
 
         // Render Admin Panel Bookings List
-        window.renderAdminBookingsList = function() {
+        function renderAdminBookingsList() {
             const bookings = getAllBookings();
             const tableBody = document.getElementById('adminTableBody');
             const emptyState = document.getElementById('emptyAdminState');
@@ -873,7 +885,7 @@
                     <td class="p-3.5 font-bold text-indigo-700">${timeStr}</td>
                     <td class="p-3.5 text-slate-800 font-semibold">${counselorName}</td>
                     <td class="p-3.5 text-center">
-                        <button onclick="window.cancelBookingFromAdmin('${key}')" class="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-[11px] font-bold transition">
+                        <button onclick="cancelBookingFromAdmin('${key}')" class="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-[11px] font-bold transition">
                             <i class="fa-solid fa-trash-can ml-1"></i>لغو
                         </button>
                     </td>
@@ -891,43 +903,40 @@
             }
         }
 
-        window.cancelBookingFromAdmin = async function(key) {
+        async function cancelBookingFromAdmin(key) {
             if (confirm('آیا از لغو این نوبت اطمینان دارید؟')) {
                 await removeBooking(key);
                 showToast('نوبت با موفقیت لغو شد');
             }
         }
 
-        window.clearAllBookingsConfirmed = async function() {
+        async function clearAllBookingsConfirmed() {
             if (confirm('آیا مطمئن هستید که می‌خواهید تمامی رزروهای مرکز را پاکسازی کنید؟ این عمل غیرقابل بازگشت است.')) {
-                const bookings = getAllBookings();
-                for (const key of Object.keys(bookings)) {
-                    await removeBooking(key);
-                }
+                await saveBookingsData({});
                 showToast('تمامی اطلاعات با موفقیت پاکسازی شدند');
             }
         }
 
         // Actions and Handlers
-        window.selectDay = function(index) {
+        function selectDay(index) {
             selectedDayIndex = index;
             renderWeekTabs();
             renderSelectedDaySchedule();
         }
 
-        window.changeWeek = function(direction) {
+        function changeWeek(direction) {
             currentWeekOffset += direction;
             renderWeekTabs();
             renderSelectedDaySchedule();
         }
 
-        window.resetToCurrentWeek = function() {
+        function resetToCurrentWeek() {
             currentWeekOffset = 0;
             renderWeekTabs();
             renderSelectedDaySchedule();
         }
 
-        window.handleSlotClick = function(slotKey, fullDateStr, time, counselorName, isBooked) {
+        function handleSlotClick(slotKey, fullDateStr, time, counselorName, isBooked) {
             selectedSlotKey = slotKey;
 
             if (isBooked) {
@@ -955,7 +964,7 @@
             }
         }
 
-        window.handleBookingSubmit = async function(e) {
+        async function handleBookingSubmit(e) {
             e.preventDefault();
 
             const name = document.getElementById('clientName').value.trim();
@@ -986,7 +995,7 @@
             showToast('نوبت با موفقیت ثبت گردید');
         }
 
-        window.cancelCurrentBooking = async function() {
+        async function cancelCurrentBooking() {
             if (!selectedSlotKey) return;
 
             if (confirm('آیا از لغو این نوبت رزرو شده اطمینان دارید؟')) {
@@ -996,11 +1005,11 @@
             }
         }
 
-        window.closeModal = function() {
+        function closeModal() {
             document.getElementById('bookingModal').classList.add('hidden');
         }
 
-        window.closeDetailsModal = function() {
+        function closeDetailsModal() {
             document.getElementById('detailsModal').classList.add('hidden');
         }
 
@@ -1024,8 +1033,12 @@
             }, 3000);
         }
 
-        // Run Real-time Sync on Load
-        initRealtimeSync();
+        // Initialize App and Fetch Data from JSONbin on Load
+        window.onload = function() {
+            fetchBookingsData();
+            // Auto refresh every 10 seconds to keep devices synced
+            setInterval(fetchBookingsData, 10000);
+        };
     </script>
 </body>
 </html>
