@@ -288,7 +288,7 @@
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 mt-8">
         <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-            سامانه رزرو وقت مرکز مشاوره - ذخیره‌سازی ابری و همگام‌سازی لحظه‌ای
+            سامانه رزرو وقت مرکز مشاوره - ذخیره‌سازی ابری و همگام‌سازی لحظه‌ای (پایدار روی شبکه ایران)
         </div>
     </footer>
 
@@ -455,11 +455,11 @@
         <span id="toastMessage">عملیات با موفقیت انجام شد</span>
     </div>
 
-    <!-- JavaScript Application Logic with Firebase Integration -->
+    <!-- JavaScript Application Logic with Firebase Stable Long Polling Integration -->
     <script type="module">
         // Import Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -471,9 +471,11 @@
             appId: "1:131310266457:web:e2eb395dd3c69f1de42948"
         };
 
-        // Initialize Firebase
+        // Initialize Firebase with Long Polling enabled for Iranian Networks
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        const db = initializeFirestore(app, {
+            experimentalForceLongPolling: true
+        });
 
         // State Management Variables
         let currentWeekOffset = 0;
