@@ -288,7 +288,7 @@
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 mt-8">
         <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-            سامانه رزرو وقت مرکز مشاوره - ذخیره‌سازی هوشمند و خودکار اطلاعات
+            سامانه رزرو وقت مرکز مشاوره - ذخیره‌سازی ابری و همگام‌سازی لحظه‌ای
         </div>
     </footer>
 
@@ -455,14 +455,33 @@
         <span id="toastMessage">عملیات با موفقیت انجام شد</span>
     </div>
 
-    <!-- JavaScript Application Logic -->
-    <script>
+    <!-- JavaScript Application Logic with Firebase Integration -->
+    <script type="module">
+        // Import Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCCSrvlov2utpkeH_CnwrqYmgue2EKKVmAI",
+            authDomain: "moshavere-db.firebaseapp.com",
+            projectId: "moshavere-db",
+            storageBucket: "moshavere-db.appspot.com",
+            messagingSenderId: "131310266457",
+            appId: "1:131310266457:web:e2eb395dd3c69f1de42948"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
         // State Management Variables
         let currentWeekOffset = 0;
         let selectedDayIndex = 0; // 0: Sat, 1: Sun, 2: Mon, 3: Tue, 4: Wed
         let isAdminView = false;
         let selectedSlotKey = null;
-        let currentLoggedInAdmin = null; // Stores logged-in admin name
+        let currentLoggedInAdmin = null; 
+        let globalBookingsCache = {};
 
         // Morning & Evening Times Matrix
         const MORNING_TIMES = [
@@ -582,35 +601,49 @@
             return `${j[0]}-${String(j[1]).padStart(2,'0')}-${String(j[2]).padStart(2,'0')}`;
         }
 
-        // LocalStorage Helpers
-        function getStorageKey() {
-            return 'counseling_center_daily_bookings_v3';
+        // Real-time Firestore Sync Setup
+        function initRealtimeSync() {
+            onSnapshot(collection(db, "bookings"), (snapshot) => {
+                globalBookingsCache = {};
+                snapshot.forEach((docSnap) => {
+                    globalBookingsCache[docSnap.id] = docSnap.data();
+                });
+                renderWeekTabs();
+                renderSelectedDaySchedule();
+                if (isAdminView) {
+                    renderAdminBookingsList();
+                }
+            }, (error) => {
+                console.error("Error listening to realtime updates: ", error);
+            });
         }
 
         function getAllBookings() {
+            return globalBookingsCache;
+        }
+
+        async function saveBooking(key, bookingData) {
             try {
-                const data = localStorage.getItem(getStorageKey());
-                return data ? JSON.parse(data) : {};
-            } catch(e) {
-                return {};
+                await setDoc(doc(db, "bookings", key), bookingData);
+            } catch (e) {
+                console.error("Error saving booking: ", e);
+                showToast('خطا در ارتباط با دیتابیس', 'error');
             }
         }
 
-        function saveBooking(key, bookingData) {
-            const bookings = getAllBookings();
-            bookings[key] = bookingData;
-            localStorage.setItem(getStorageKey(), JSON.stringify(bookings));
-        }
-
-        function removeBooking(key) {
-            const bookings = getAllBookings();
-            delete bookings[key];
-            localStorage.setItem(getStorageKey(), JSON.stringify(bookings));
+        async function removeBooking(key) {
+            try {
+                await deleteDoc(doc(db, "bookings", key));
+            } catch (e) {
+                console.error("Error removing booking: ", e);
+                showToast('خطا در حذف نوبت', 'error');
+            }
         }
 
         // Render Navigation Tabs
         function renderWeekTabs() {
             const tabsContainer = document.getElementById('daysTabBar');
+            if(!tabsContainer) return;
             tabsContainer.innerHTML = '';
 
             DAYS_CONFIG.forEach((day, index) => {
@@ -637,7 +670,10 @@
             const satDate = getDateForDay(currentWeekOffset, 0);
             const wedDate = getDateForDay(currentWeekOffset, 4);
             const yearStr = gregorianToJalali(satDate.getFullYear(), satDate.getMonth()+1, satDate.getDate())[0];
-            document.getElementById('weekRangeDisplay').innerText = `${formatJalaliDate(satDate)} الی ${formatJalaliDate(wedDate)} (${yearStr})`;
+            const rangeDisplay = document.getElementById('weekRangeDisplay');
+            if(rangeDisplay) {
+                rangeDisplay.innerText = `${formatJalaliDate(satDate)} الی ${formatJalaliDate(wedDate)} (${yearStr})`;
+            }
         }
 
         // Render Day Schedule
@@ -647,16 +683,22 @@
             const dateKeyStr = getDateKey(dayDate);
             const formattedDate = formatJalaliDate(dayDate);
 
-            document.getElementById('currentDayTitle').innerText = `روز ${dayConfig.name}`;
-            document.getElementById('currentDayDate').innerText = `تاریخ: ${formattedDate} (${gregorianToJalali(dayDate.getFullYear(), dayDate.getMonth()+1, dayDate.getDate())[0]})`;
+            const titleEl = document.getElementById('currentDayTitle');
+            const dateEl = document.getElementById('currentDayDate');
+            if(titleEl) titleEl.innerText = `روز ${dayConfig.name}`;
+            if(dateEl) dateEl.innerText = `تاریخ: ${formattedDate} (${gregorianToJalali(dayDate.getFullYear(), dayDate.getMonth()+1, dayDate.getDate())[0]})`;
 
             const bookings = getAllBookings();
 
             const morningContainer = document.getElementById('morningShiftsContainer');
-            morningContainer.innerHTML = renderShiftSectionHtml(dateKeyStr, dayConfig.name, formattedDate, 'morning', dayConfig.shifts.morning, MORNING_TIMES, bookings);
+            if(morningContainer) {
+                morningContainer.innerHTML = renderShiftSectionHtml(dateKeyStr, dayConfig.name, formattedDate, 'morning', dayConfig.shifts.morning, MORNING_TIMES, bookings);
+            }
 
             const eveningContainer = document.getElementById('eveningShiftsContainer');
-            eveningContainer.innerHTML = renderShiftSectionHtml(dateKeyStr, dayConfig.name, formattedDate, 'evening', dayConfig.shifts.evening, EVENING_TIMES, bookings);
+            if(eveningContainer) {
+                eveningContainer.innerHTML = renderShiftSectionHtml(dateKeyStr, dayConfig.name, formattedDate, 'evening', dayConfig.shifts.evening, EVENING_TIMES, bookings);
+            }
         }
 
         function renderShiftSectionHtml(dateKey, dayName, formattedDate, shiftType, counselors, timeList, bookings) {
@@ -726,9 +768,8 @@
         }
 
         // Toggle View Mode & Admin Authentication Control
-        function handleViewToggleClick() {
+        window.handleViewToggleClick = function() {
             if (!isAdminView) {
-                // Currently in user view, wants to go to admin -> Require Login first
                 if (!currentLoggedInAdmin) {
                     openAdminLoginModal();
                     return;
@@ -762,24 +803,21 @@
         }
 
         // Admin Login Handlers
-        function openAdminLoginModal() {
+        window.openAdminLoginModal = function() {
             document.getElementById('adminUsernameInput').value = '';
             document.getElementById('adminPasswordInput').value = '';
             document.getElementById('adminLoginModal').classList.remove('hidden');
         }
 
-        function closeAdminLoginModal() {
+        window.closeAdminLoginModal = function() {
             document.getElementById('adminLoginModal').classList.add('hidden');
         }
 
-        function handleAdminLoginSubmit(e) {
+        window.handleAdminLoginSubmit = function(e) {
             e.preventDefault();
             const user = document.getElementById('adminUsernameInput').value.trim();
             const pass = document.getElementById('adminPasswordInput').value.trim();
 
-            // Checking credentials specified by user:
-            // 1) عماد با رمز emad1384
-            // 2) سلطانی با رمز Aa123456
             if ((user === 'عماد' && pass === 'emad1384') || (user === 'سلطانی' && pass === 'Aa123456')) {
                 currentLoggedInAdmin = user;
                 closeAdminLoginModal();
@@ -791,12 +829,16 @@
         }
 
         // Render Admin Panel Bookings List
-        function renderAdminBookingsList() {
+        window.renderAdminBookingsList = function() {
             const bookings = getAllBookings();
             const tableBody = document.getElementById('adminTableBody');
             const emptyState = document.getElementById('emptyAdminState');
-            const searchVal = document.getElementById('adminSearchInput').value.trim().toLowerCase();
-            const dayFilterVal = document.getElementById('adminDayFilter').value;
+            const searchInput = document.getElementById('adminSearchInput');
+            const dayFilter = document.getElementById('adminDayFilter');
+            
+            if(!tableBody) return;
+            const searchVal = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const dayFilterVal = dayFilter ? dayFilter.value : 'ALL';
 
             tableBody.innerHTML = '';
             let count = 0;
@@ -829,7 +871,7 @@
                     <td class="p-3.5 font-bold text-indigo-700">${timeStr}</td>
                     <td class="p-3.5 text-slate-800 font-semibold">${counselorName}</td>
                     <td class="p-3.5 text-center">
-                        <button onclick="cancelBookingFromAdmin('${key}')" class="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-[11px] font-bold transition">
+                        <button onclick="window.cancelBookingFromAdmin('${key}')" class="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-[11px] font-bold transition">
                             <i class="fa-solid fa-trash-can ml-1"></i>لغو
                         </button>
                     </td>
@@ -837,7 +879,8 @@
                 tableBody.appendChild(row);
             });
 
-            document.getElementById('totalBookingsCount').innerText = count;
+            const totalCountEl = document.getElementById('totalBookingsCount');
+            if(totalCountEl) totalCountEl.innerText = count;
 
             if (count === 0) {
                 emptyState.classList.remove('hidden');
@@ -846,42 +889,43 @@
             }
         }
 
-        function cancelBookingFromAdmin(key) {
+        window.cancelBookingFromAdmin = async function(key) {
             if (confirm('آیا از لغو این نوبت اطمینان دارید؟')) {
-                removeBooking(key);
-                renderAdminBookingsList();
+                await removeBooking(key);
                 showToast('نوبت با موفقیت لغو شد');
             }
         }
 
-        function clearAllBookingsConfirmed() {
+        window.clearAllBookingsConfirmed = async function() {
             if (confirm('آیا مطمئن هستید که می‌خواهید تمامی رزروهای مرکز را پاکسازی کنید؟ این عمل غیرقابل بازگشت است.')) {
-                localStorage.removeItem(getStorageKey());
-                renderAdminBookingsList();
+                const bookings = getAllBookings();
+                for (const key of Object.keys(bookings)) {
+                    await removeBooking(key);
+                }
                 showToast('تمامی اطلاعات با موفقیت پاکسازی شدند');
             }
         }
 
         // Actions and Handlers
-        function selectDay(index) {
+        window.selectDay = function(index) {
             selectedDayIndex = index;
             renderWeekTabs();
             renderSelectedDaySchedule();
         }
 
-        function changeWeek(direction) {
+        window.changeWeek = function(direction) {
             currentWeekOffset += direction;
             renderWeekTabs();
             renderSelectedDaySchedule();
         }
 
-        function resetToCurrentWeek() {
+        window.resetToCurrentWeek = function() {
             currentWeekOffset = 0;
             renderWeekTabs();
             renderSelectedDaySchedule();
         }
 
-        function handleSlotClick(slotKey, fullDateStr, time, counselorName, isBooked) {
+        window.handleSlotClick = function(slotKey, fullDateStr, time, counselorName, isBooked) {
             selectedSlotKey = slotKey;
 
             if (isBooked) {
@@ -909,7 +953,7 @@
             }
         }
 
-        function handleBookingSubmit(e) {
+        window.handleBookingSubmit = async function(e) {
             e.preventDefault();
 
             const name = document.getElementById('clientName').value.trim();
@@ -935,28 +979,26 @@
                 createdAt: new Date().toISOString()
             };
 
-            saveBooking(selectedSlotKey, bookingData);
+            await saveBooking(selectedSlotKey, bookingData);
             closeModal();
-            renderSelectedDaySchedule();
             showToast('نوبت با موفقیت ثبت گردید');
         }
 
-        function cancelCurrentBooking() {
+        window.cancelCurrentBooking = async function() {
             if (!selectedSlotKey) return;
 
             if (confirm('آیا از لغو این نوبت رزرو شده اطمینان دارید؟')) {
-                removeBooking(selectedSlotKey);
+                await removeBooking(selectedSlotKey);
                 closeDetailsModal();
-                renderSelectedDaySchedule();
                 showToast('رزرو با موفقیت لغو شد');
             }
         }
 
-        function closeModal() {
+        window.closeModal = function() {
             document.getElementById('bookingModal').classList.add('hidden');
         }
 
-        function closeDetailsModal() {
+        window.closeDetailsModal = function() {
             document.getElementById('detailsModal').classList.add('hidden');
         }
 
@@ -980,11 +1022,8 @@
             }, 3000);
         }
 
-        // Initialize Application On Load
-        window.onload = function() {
-            renderWeekTabs();
-            renderSelectedDaySchedule();
-        };
+        // Run Real-time Sync on Load
+        initRealtimeSync();
     </script>
 </body>
 </html>
