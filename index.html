@@ -48,7 +48,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+<body class="min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white pb-12">
 
     <!-- Header / Top Bar -->
     <header class="bg-indigo-900 text-white shadow-xl sticky top-0 z-30">
@@ -130,7 +130,7 @@
                     </div>
                     <div>
                         <h2 id="currentDayTitle" class="text-lg font-extrabold text-slate-800">شنبه</h2>
-                        <p id="currentDayDate" class="text-xs text-indigo-600 font-semibold">-- آبان ۱۴۰۳</p>
+                        <p id="currentDayDate" class="text-xs text-indigo-600 font-semibold">--</p>
                     </div>
                 </div>
                 <div class="text-xs text-slate-400 font-medium hidden sm:block">
@@ -284,6 +284,12 @@
         </div>
 
     </main>
+
+    <!-- Floating Live Clock Widget (Bottom Left) -->
+    <div class="fixed bottom-4 left-4 z-40 bg-indigo-950/90 backdrop-blur-md text-white px-3.5 py-2 rounded-2xl shadow-xl border border-indigo-800 flex items-center space-x-2.5 space-x-reverse text-xs font-semibold">
+        <i class="fa-regular fa-clock text-amber-400 text-sm animate-pulse"></i>
+        <span id="liveClockDisplay">در حال بارگذاری ساعت...</span>
+    </div>
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 mt-8">
@@ -446,12 +452,12 @@
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-5 left-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl z-50 flex items-center space-x-3 space-x-reverse text-sm transform translate-y-20 opacity-0 transition-all duration-300">
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl z-50 flex items-center space-x-3 space-x-reverse text-sm transform translate-y-20 opacity-0 transition-all duration-300">
         <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
         <span id="toastMessage">عملیات با موفقیت انجام شد</span>
     </div>
 
-    <!-- JavaScript Application Logic with JSONbin.io REST API -->
+    <!-- JavaScript Application Logic with JSONbin.io REST API and Real-time Date Calculation -->
     <script>
         // JSONbin.io Configuration
         const BIN_ID = "6ad87543ac6210605a44e878";
@@ -535,7 +541,7 @@
             }
         ];
 
-        // Jalali Date Converter Helper
+        // Accurate Jalali Date Converter Helper
         function gregorianToJalali(gy, gm, gd) {
             const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
             let jy = (gy <= 1600) ? 0 : 979;
@@ -558,20 +564,23 @@
             'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
         ];
 
-        function getSaturdayOfWeek(date) {
-            const d = new Date(date);
-            const day = d.getDay();
-            const diff = (day === 6) ? 0 : (day + 1);
-            d.setDate(d.getDate() - diff);
-            d.setHours(0,0,0,0);
+        // Calculate current Saturday of the active week based on real system date
+        function getSaturdayOfWeek(dateObj, offsetWeeks) {
+            const d = new Date(dateObj);
+            const day = d.getDay(); // 0: Sun, 1: Mon, ... 6: Sat
+            // In Iran, week starts on Saturday (6). Distance from Saturday:
+            let diffToSat = (day === 6) ? 0 : (day + 1);
+            d.setDate(d.getDate() - diffToSat + (offsetWeeks * 7));
+            d.setHours(0, 0, 0, 0);
             return d;
         }
 
         function getDateForDay(offsetWeeks, dayIndex) {
             const now = new Date();
-            const saturday = getSaturdayOfWeek(now);
-            saturday.setDate(saturday.getDate() + (offsetWeeks * 7) + dayIndex);
-            return saturday;
+            const sat = getSaturdayOfWeek(now, offsetWeeks);
+            const targetDate = new Date(sat);
+            targetDate.setDate(sat.getDate() + dayIndex);
+            return targetDate;
         }
 
         function formatJalaliDate(dateObj) {
@@ -582,6 +591,18 @@
         function getDateKey(dateObj) {
             const j = gregorianToJalali(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
             return `${j[0]}-${String(j[1]).padStart(2,'0')}-${String(j[2]).padStart(2,'0')}`;
+        }
+
+        // Live Clock Widget Updater
+        function updateLiveClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const clockEl = document.getElementById('liveClockDisplay');
+            if (clockEl) {
+                clockEl.innerText = `${hours}:${minutes}:${seconds}`;
+            }
         }
 
         // Fetch Data from JSONbin
@@ -679,10 +700,10 @@
 
             const satDate = getDateForDay(currentWeekOffset, 0);
             const wedDate = getDateForDay(currentWeekOffset, 4);
-            const yearStr = gregorianToJalali(satDate.getFullYear(), satDate.getMonth()+1, satDate.getDate())[0];
+            const satJ = gregorianToJalali(satDate.getFullYear(), satDate.getMonth()+1, satDate.getDate());
             const rangeDisplay = document.getElementById('weekRangeDisplay');
             if(rangeDisplay) {
-                rangeDisplay.innerText = `${formatJalaliDate(satDate)} الی ${formatJalaliDate(wedDate)} (${yearStr})`;
+                rangeDisplay.innerText = `${formatJalaliDate(satDate)} الی ${formatJalaliDate(wedDate)} (${satJ[0]})`;
             }
         }
 
@@ -692,11 +713,12 @@
             const dayDate = getDateForDay(currentWeekOffset, dayConfig.dayIndex);
             const dateKeyStr = getDateKey(dayDate);
             const formattedDate = formatJalaliDate(dayDate);
+            const jY = gregorianToJalali(dayDate.getFullYear(), dayDate.getMonth()+1, dayDate.getDate())[0];
 
             const titleEl = document.getElementById('currentDayTitle');
             const dateEl = document.getElementById('currentDayDate');
             if(titleEl) titleEl.innerText = `روز ${dayConfig.name}`;
-            if(dateEl) dateEl.innerText = `تاریخ: ${formattedDate} (${gregorianToJalali(dayDate.getFullYear(), dayDate.getMonth()+1, dayDate.getDate())[0]})`;
+            if(dateEl) dateEl.innerText = `تاریخ: ${formattedDate} ${jY}`;
 
             const bookings = getAllBookings();
 
@@ -1019,11 +1041,12 @@
             }, 3000);
         }
 
-        // Initialize App and Fetch Data from JSONbin on Load
+        // Initialize App and Live Clock on Load
         window.onload = function() {
             fetchBookingsData();
-            // Auto refresh every 10 seconds to keep devices synced
-            setInterval(fetchBookingsData, 10000);
+            updateLiveClock();
+            setInterval(updateLiveClock, 1000); // Update clock every second
+            setInterval(fetchBookingsData, 10000); // Auto sync data every 10 seconds
         };
     </script>
 </body>
