@@ -285,10 +285,11 @@
 
     </main>
 
-    <!-- Floating Live Clock Widget (Bottom Left) -->
+    <!-- Floating Live Iran Clock Widget (Bottom Left) -->
     <div class="fixed bottom-4 left-4 z-40 bg-indigo-950/90 backdrop-blur-md text-white px-3.5 py-2 rounded-2xl shadow-xl border border-indigo-800 flex items-center space-x-2.5 space-x-reverse text-xs font-semibold">
         <i class="fa-regular fa-clock text-amber-400 text-sm animate-pulse"></i>
-        <span id="liveClockDisplay">در حال بارگذاری ساعت...</span>
+        <span>ساعت رسمی ایران: </span>
+        <span id="liveClockDisplay" class="text-amber-300 font-bold dir-ltr">--:--:--</span>
     </div>
 
     <!-- Footer -->
@@ -457,7 +458,7 @@
         <span id="toastMessage">عملیات با موفقیت انجام شد</span>
     </div>
 
-    <!-- JavaScript Application Logic with JSONbin.io REST API and Real-time Date Calculation -->
+    <!-- JavaScript Application Logic with Native Intl Jalali Date Conversion -->
     <script>
         // JSONbin.io Configuration
         const BIN_ID = "6ad87543ac6210605a44e878";
@@ -541,67 +542,67 @@
             }
         ];
 
-        // Accurate Jalali Date Converter Helper
-        function gregorianToJalali(gy, gm, gd) {
-            const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-            let jy = (gy <= 1600) ? 0 : 979;
-            gy -= (gy <= 1600) ? 621 : 1600;
-            const gy2 = (gm > 2) ? (gy + 1) : gy;
-            let days = (365 * gy) + (Math.floor((gy2 + 3) / 4)) - (Math.floor((gy2 + 99) / 100)) + (Math.floor((gy2 + 399) / 400)) + 80 + gd + g_d_m[gm - 1];
-            jy += 33 * Math.floor(days / 12053);
-            days %= 12053;
-            jy += 4 * Math.floor(days / 1461);
-            days %= 1461;
-            jy += Math.floor((days - 1) / 365);
-            if (days > 0) days = (days - 1) % 365;
-            let jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-            let jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
-            return [jy, jm, jd];
-        }
+        // Standard Native Jalali Formatter via Browser Intl API
+        const jalaliFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+            timeZone: 'Asia/Tehran',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
 
-        const PERSIAN_MONTHS = [
-            'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-            'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
-        ];
+        const jalaliKeyFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', {
+            timeZone: 'Asia/Tehran',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
 
-        // Calculate current Saturday of the active week based on real system date
-        function getSaturdayOfWeek(dateObj, offsetWeeks) {
-            const d = new Date(dateObj);
+        // Calculate Saturday of current/active week accurately
+        function getSaturdayOfWeek(offsetWeeks) {
+            const d = new Date();
             const day = d.getDay(); // 0: Sun, 1: Mon, ... 6: Sat
-            // In Iran, week starts on Saturday (6). Distance from Saturday:
-            let diffToSat = (day === 6) ? 0 : (day + 1);
+            // Days passed since last Saturday: Sat(6)->0, Sun(0)->1, Mon(1)->2, Tue(2)->3, Wed(3)->4, Thu(4)->5, Fri(5)->6
+            const diffToSat = (day === 6) ? 0 : (day + 1);
             d.setDate(d.getDate() - diffToSat + (offsetWeeks * 7));
-            d.setHours(0, 0, 0, 0);
+            d.setHours(12, 0, 0, 0);
             return d;
         }
 
         function getDateForDay(offsetWeeks, dayIndex) {
-            const now = new Date();
-            const sat = getSaturdayOfWeek(now, offsetWeeks);
+            const sat = getSaturdayOfWeek(offsetWeeks);
             const targetDate = new Date(sat);
             targetDate.setDate(sat.getDate() + dayIndex);
             return targetDate;
         }
 
         function formatJalaliDate(dateObj) {
-            const j = gregorianToJalali(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
-            return `${j[2]} ${PERSIAN_MONTHS[j[1] - 1]}`;
+            return jalaliFormatter.format(dateObj);
         }
 
         function getDateKey(dateObj) {
-            const j = gregorianToJalali(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
-            return `${j[0]}-${String(j[1]).padStart(2,'0')}-${String(j[2]).padStart(2,'0')}`;
+            const parts = jalaliKeyFormatter.formatToParts(dateObj);
+            let y, m, d;
+            for (const p of parts) {
+                if (p.type === 'year') y = p.value;
+                if (p.type === 'month') m = p.value;
+                if (p.type === 'day') d = p.value;
+            }
+            return `${y}-${m}-${d}`;
         }
 
-        // Live Clock Widget Updater
+        // Live Clock Widget Updater for Official Iran Time (Asia/Tehran)
         function updateLiveClock() {
             const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeStr = now.toLocaleTimeString('fa-IR', {
+                timeZone: 'Asia/Tehran',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
             const clockEl = document.getElementById('liveClockDisplay');
             if (clockEl) {
-                clockEl.innerText = `${hours}:${minutes}:${seconds}`;
+                clockEl.innerText = timeStr;
             }
         }
 
@@ -700,10 +701,9 @@
 
             const satDate = getDateForDay(currentWeekOffset, 0);
             const wedDate = getDateForDay(currentWeekOffset, 4);
-            const satJ = gregorianToJalali(satDate.getFullYear(), satDate.getMonth()+1, satDate.getDate());
             const rangeDisplay = document.getElementById('weekRangeDisplay');
             if(rangeDisplay) {
-                rangeDisplay.innerText = `${formatJalaliDate(satDate)} الی ${formatJalaliDate(wedDate)} (${satJ[0]})`;
+                rangeDisplay.innerText = `${formatJalaliDate(satDate)} الی ${formatJalaliDate(wedDate)}`;
             }
         }
 
@@ -713,12 +713,11 @@
             const dayDate = getDateForDay(currentWeekOffset, dayConfig.dayIndex);
             const dateKeyStr = getDateKey(dayDate);
             const formattedDate = formatJalaliDate(dayDate);
-            const jY = gregorianToJalali(dayDate.getFullYear(), dayDate.getMonth()+1, dayDate.getDate())[0];
 
             const titleEl = document.getElementById('currentDayTitle');
             const dateEl = document.getElementById('currentDayDate');
             if(titleEl) titleEl.innerText = `روز ${dayConfig.name}`;
-            if(dateEl) dateEl.innerText = `تاریخ: ${formattedDate} ${jY}`;
+            if(dateEl) dateEl.innerText = `تاریخ: ${formattedDate}`;
 
             const bookings = getAllBookings();
 
@@ -1041,7 +1040,7 @@
             }, 3000);
         }
 
-        // Initialize App and Live Clock on Load
+        // Initialize App and Live Iran Clock on Load
         window.onload = function() {
             fetchBookingsData();
             updateLiveClock();
