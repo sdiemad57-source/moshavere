@@ -449,14 +449,14 @@
                 </div>
             </div>
 
-            <!-- Quick Previous Clients Selection Bar -->
+            <!-- Quick Previous Clients Selection Bar (Filtered by Counselor & Sorted by Lastname) -->
             <div class="mb-4 bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 space-y-2">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-indigo-900"><i class="fa-solid fa-users ml-1"></i> انتخاب از مراجعین قبلی:</span>
+                    <span class="text-xs font-bold text-indigo-900"><i class="fa-solid fa-users ml-1"></i> مراجعین قبلی این مشاور:</span>
                     <button type="button" onclick="togglePreviousClientsList()" class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold underline">مشاهده لیست</button>
                 </div>
                 <div id="previousClientsDropdownContainer" class="hidden max-h-36 overflow-y-auto space-y-1 pt-1">
-                    <!-- Injected previous clients -->
+                    <!-- Injected filtered & sorted previous clients -->
                 </div>
             </div>
 
@@ -899,7 +899,6 @@
             if (count === 0) emptyState.classList.remove('hidden'); else emptyState.classList.add('hidden');
         }
 
-        // Render Counselors Performance Summary
         function renderCounselorsPerformance() {
             const bookings = getAllBookings();
             const selectedMonth = document.getElementById('counselorMonthSelect').value;
@@ -919,7 +918,7 @@
                     counselorStats[cName] = { totalClients: 0, totalHours: 0, appointments: [] };
                 }
                 counselorStats[cName].totalClients++;
-                counselorStats[cName].totalHours += 0.75; // هر جلسه ۴۵ دقیقه معادل ۰.۷۵ ساعت
+                counselorStats[cName].totalHours += 0.75;
                 counselorStats[cName].appointments.push(b);
             });
 
@@ -991,7 +990,6 @@
 
         function closeCounselorDetailModal() { document.getElementById('counselorDetailModal').classList.add('hidden'); }
 
-        // Generate Export Report
         function generateExportReport() {
             const selectedMonth = document.getElementById('exportMonthSelect').value;
             const bookings = getAllBookings();
@@ -1073,7 +1071,7 @@
         function changeWeek(direction) { currentWeekOffset += direction; renderWeekTabs(); renderSelectedDaySchedule(); }
         function resetToCurrentWeek() { currentWeekOffset = 0; renderWeekTabs(); renderSelectedDaySchedule(); }
 
-        // Quick Previous Clients Logic in Booking Modal
+        // Quick Previous Clients Logic: Filtered by Current Counselor & Sorted Alphabetically by Lastname
         function handleSlotClick(slotKey, fullDateStr, time, counselorName, isBooked) {
             selectedSlotKey = slotKey;
             if (isBooked) {
@@ -1094,32 +1092,49 @@
                 document.getElementById('clientPhone').value = '';
                 document.getElementById('clientNotes').value = '';
                 document.getElementById('previousClientsDropdownContainer').classList.add('hidden');
-                renderPreviousClientsList();
+                
+                // Pass counselorName to render filtered and sorted list
+                renderPreviousClientsList(counselorName);
                 document.getElementById('bookingModal').classList.remove('hidden');
             }
         }
 
-        function renderPreviousClientsList() {
+        function renderPreviousClientsList(targetCounselorName) {
             const bookings = getAllBookings();
             const container = document.getElementById('previousClientsDropdownContainer');
             container.innerHTML = '';
             
-            let uniqueClients = {};
+            let filteredClientsMap = {};
+
             Object.keys(bookings).forEach(k => {
                 const b = bookings[k];
-                if (b.clientName && b.clientPhone) {
-                    uniqueClients[b.clientPhone] = { name: b.clientName, phone: b.clientPhone };
+                // Match exact counselor
+                if (b.counselorName === targetCounselorName && b.clientName && b.clientPhone) {
+                    filteredClientsMap[b.clientPhone] = { name: b.clientName, phone: b.clientPhone };
                 }
             });
 
-            const clientKeys = Object.keys(uniqueClients);
-            if (clientKeys.length === 0) {
-                container.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-2">هنوز مراجعی ثبت نشده است.</p>`;
+            let clientList = Object.values(filteredClientsMap);
+
+            if (clientList.length === 0) {
+                container.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-2">هیچ مراجع قبلی برای این مشاور ثبت نشده است.</p>`;
                 return;
             }
 
-            clientKeys.forEach(phone => {
-                const c = uniqueClients[phone];
+            // Helper to extract Lastname (Last word in full name) for proper Persian alphabetical sorting
+            function getLastname(fullName) {
+                const parts = fullName.trim().split(/\s+/);
+                return parts[parts.length - 1];
+            }
+
+            // Sort clients alphabetically by Lastname using Persian locale
+            clientList.sort((a, b) => {
+                const lastA = getLastname(a.name);
+                const lastB = getLastname(b.name);
+                return lastA.localeCompare(lastB, 'fa');
+            });
+
+            clientList.forEach(c => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.onclick = () => selectPreviousClient(c.name, c.phone);
