@@ -35,6 +35,10 @@
             box-shadow: 0 4px 14px rgba(67, 56, 202, 0.25);
             border-color: #4338ca !important;
         }
+        .admin-tab-active {
+            background-color: #4338ca !important;
+            color: #ffffff !important;
+        }
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -213,7 +217,7 @@
                         <i class="fa-solid fa-clipboard-list"></i>
                     </div>
                     <div>
-                        <h2 class="text-lg font-bold">پنل مدیریت - لیست نوبت‌های ثبت‌شده</h2>
+                        <h2 class="text-lg font-bold">پنل مدیریت جامع مرکز</h2>
                         <p class="text-xs text-indigo-200">مدیر واردشده: <span id="currentAdminNameDisplay" class="text-amber-300 font-bold">--</span></p>
                     </div>
                 </div>
@@ -226,58 +230,147 @@
                 </div>
             </div>
 
-            <!-- Admin Search and Filter Controls -->
-            <div class="glass-card rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div class="relative w-full sm:w-80">
-                    <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-slate-400 text-sm"></i>
-                    <input type="text" id="adminSearchInput" oninput="renderAdminBookingsList()" placeholder="جستجوی نام یا شماره مراجع..." class="w-full pr-9 pl-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <!-- Admin Sub-Navigation Tabs -->
+            <div class="glass-card rounded-2xl p-2 shadow-sm flex items-center space-x-2 space-x-reverse">
+                <button onclick="switchAdminTab('list')" id="adminTabListBtn" class="flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition admin-tab-active">
+                    <i class="fa-solid fa-list ml-1.5"></i> لیست رزروها
+                </button>
+                <button onclick="switchAdminTab('counselors')" id="adminTabCounselorsBtn" class="flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition text-slate-700 bg-white hover:bg-slate-50 border border-slate-200">
+                    <i class="fa-solid fa-chart-pie ml-1.5"></i> عملکرد مشاوران
+                </button>
+                <button onclick="switchAdminTab('export')" id="adminTabExportBtn" class="flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition text-slate-700 bg-white hover:bg-slate-50 border border-slate-200">
+                    <i class="fa-solid fa-file-excel ml-1.5"></i> خروجی‌گیری گزارشات
+                </button>
+            </div>
+
+            <!-- TAB 1: LIST OF BOOKINGS -->
+            <div id="adminSubTabList" class="space-y-4">
+                <div class="glass-card rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="relative w-full sm:w-80">
+                        <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-slate-400 text-sm"></i>
+                        <input type="text" id="adminSearchInput" oninput="renderAdminBookingsList()" placeholder="جستجوی نام یا شماره مراجع..." class="w-full pr-9 pl-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div class="flex items-center space-x-2 space-x-reverse w-full sm:w-auto justify-end">
+                        <select id="adminDayFilter" onchange="renderAdminBookingsList()" class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="ALL">همه روزهای هفته</option>
+                            <option value="شنبه">شنبه</option>
+                            <option value="یکشنبه">یکشنبه</option>
+                            <option value="دوشنبه">دوشنبه</option>
+                            <option value="سه‌شنبه">سه‌شنبه</option>
+                            <option value="چهارشنبه">چهارشنبه</option>
+                        </select>
+
+                        <button onclick="clearAllBookingsConfirmed()" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1.5 space-x-reverse">
+                            <i class="fa-solid fa-trash-arrow-up"></i>
+                            <span>پاکسازی کل داده‌ها</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="flex items-center space-x-2 space-x-reverse w-full sm:w-auto justify-end">
-                    <select id="adminDayFilter" onchange="renderAdminBookingsList()" class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="ALL">همه روزهای هفته</option>
-                        <option value="شنبه">شنبه</option>
-                        <option value="یکشنبه">یکشنبه</option>
-                        <option value="دوشنبه">دوشنبه</option>
-                        <option value="سه‌شنبه">سه‌شنبه</option>
-                        <option value="چهارشنبه">چهارشنبه</option>
-                    </select>
-
-                    <button onclick="clearAllBookingsConfirmed()" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1.5 space-x-reverse">
-                        <i class="fa-solid fa-trash-arrow-up"></i>
-                        <span>پاکسازی کل داده‌ها</span>
-                    </button>
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs">
+                            <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3.5">#</th>
+                                    <th class="p-3.5">نام و نام خانوادگی مراجع</th>
+                                    <th class="p-3.5">شماره تماس</th>
+                                    <th class="p-3.5">روز و تاریخ</th>
+                                    <th class="p-3.5">ساعت نوبت</th>
+                                    <th class="p-3.5">نام مشاور مربوطه</th>
+                                    <th class="p-3.5 text-center">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamic Table Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="emptyAdminState" class="hidden p-10 text-center space-y-3">
+                        <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto text-2xl">
+                            <i class="fa-regular fa-folder-open"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-600">هیچ رزروی یافت نشد</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Admin Bookings List Table -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-right text-xs">
-                        <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                            <tr>
-                                <th class="p-3.5">#</th>
-                                <th class="p-3.5">نام و نام خانوادگی مراجع</th>
-                                <th class="p-3.5">شماره تماس</th>
-                                <th class="p-3.5">روز و تاریخ</th>
-                                <th class="p-3.5">ساعت نوبت</th>
-                                <th class="p-3.5">نام مشاور مربوطه</th>
-                                <th class="p-3.5 text-center">عملیات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminTableBody" class="divide-y divide-slate-100">
-                            <!-- Dynamic Table Rows -->
-                        </tbody>
-                    </table>
+            <!-- TAB 2: COUNSELORS PERFORMANCE -->
+            <div id="adminSubTabCounselors" class="hidden space-y-4">
+                <div class="glass-card rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <span class="text-xs font-bold text-slate-700">انتخاب ماه بررسی:</span>
+                        <select id="counselorMonthSelect" onchange="renderCounselorsPerformance()" class="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white outline-none">
+                            <option value="ALL">کل ماه‌ها (مجموع کلی)</option>
+                            <option value="فروردین">فروردین</option>
+                            <option value="اردیبهشت">اردیبهشت</option>
+                            <option value="خرداد">خرداد</option>
+                            <option value="تیر">تیر</option>
+                            <option value="مرداد">مرداد</option>
+                            <option value="شهریور">شهریور</option>
+                            <option value="مهر">مهر</option>
+                            <option value="آبان" selected>آبان</option>
+                            <option value="آذر">آذر</option>
+                            <option value="دی">دی</option>
+                            <option value="بهمن">بهمن</option>
+                            <option value="اسفند">اسفند</option>
+                        </select>
+                    </div>
                 </div>
 
-                <!-- Empty State Message -->
-                <div id="emptyAdminState" class="hidden p-10 text-center space-y-3">
-                    <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto text-2xl">
-                        <i class="fa-regular fa-folder-open"></i>
+                <div id="counselorsPerformanceContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Dynamic Counselor Cards -->
+                </div>
+            </div>
+
+            <!-- TAB 3: EXPORT REPORTS -->
+            <div id="adminSubTabExport" class="hidden space-y-4">
+                <div class="glass-card rounded-2xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center space-x-3 space-x-reverse">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg">
+                            <i class="fa-solid fa-file-arrow-down"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-base">خروجی‌گیری گزارش مراجعین و مشاوره‌ها</h3>
+                            <p class="text-xs text-slate-500">انتخاب ماه و دریافت گزارش جامع عملکرد مرکز</p>
+                        </div>
                     </div>
-                    <p class="text-sm font-bold text-slate-600">هیچ رزروی یافت نشد</p>
-                    <p class="text-xs text-slate-400">هنوز نوبتی ثبت نشده است یا عبارتی که جستجو کردید مطابقت ندارد.</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">ماه مورد نظر:</label>
+                            <select id="exportMonthSelect" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold bg-white outline-none">
+                                <option value="ALL">تمامی ماه‌ها</option>
+                                <option value="فروردین">فروردین</option>
+                                <option value="اردیبهشت">اردیبهشت</option>
+                                <option value="خرداد">خرداد</option>
+                                <option value="تیر">تیر</option>
+                                <option value="مرداد">مرداد</option>
+                                <option value="شهریور">شهریور</option>
+                                <option value="مهر">مهر</option>
+                                <option value="آبان" selected>آبان</option>
+                                <option value="آذر">آذر</option>
+                                <option value="دی">دی</option>
+                                <option value="بهمن">بهمن</option>
+                                <option value="اسفند">اسفند</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="generateExportReport()" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-md shadow-indigo-200">
+                                <i class="fa-solid fa-eye ml-1"></i> نمایش گزارش ماهانه
+                            </button>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="printExportReport()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md shadow-emerald-200">
+                                <i class="fa-solid fa-print ml-1"></i> چاپ یا ذخیره PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="exportResultContainer" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hidden space-y-4">
+                    <!-- Dynamic Export View -->
                 </div>
             </div>
 
@@ -356,8 +449,19 @@
                 </div>
             </div>
 
+            <!-- Quick Previous Clients Selection Bar -->
+            <div class="mb-4 bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-indigo-900"><i class="fa-solid fa-users ml-1"></i> انتخاب از مراجعین قبلی:</span>
+                    <button type="button" onclick="togglePreviousClientsList()" class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold underline">مشاهده لیست</button>
+                </div>
+                <div id="previousClientsDropdownContainer" class="hidden max-h-36 overflow-y-auto space-y-1 pt-1">
+                    <!-- Injected previous clients -->
+                </div>
+            </div>
+
             <!-- Info Summary Box -->
-            <div class="bg-slate-50 p-3.5 rounded-xl text-xs text-slate-600 space-y-2 mb-5 border border-slate-200">
+            <div class="bg-slate-50 p-3.5 rounded-xl text-xs text-slate-600 space-y-2 mb-4 border border-slate-200">
                 <div class="flex justify-between">
                     <span class="text-slate-500">روز و تاریخ:</span>
                     <strong id="modalDate" class="text-slate-800">--</strong>
@@ -400,13 +504,36 @@
         </div>
     </div>
 
-    <!-- View Details Modal (ONLY VIEWING FOR CLIENTS) -->
+    <!-- Counselor Detailed Modal (Admin) -->
+    <div id="counselorDetailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-100 max-h-[85vh] flex flex-col">
+            <button onclick="closeCounselorDetailModal()" class="absolute left-4 top-4 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="flex items-center space-x-3 space-x-reverse mb-4 text-indigo-700">
+                <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                    <i class="fa-solid fa-user-doctor text-2xl text-indigo-600"></i>
+                </div>
+                <div>
+                    <h3 id="counselorDetailTitle" class="font-bold text-slate-800 text-lg">جزئیات عملکرد مشاور</h3>
+                    <p class="text-xs text-slate-500">لیست کامل نوبت‌ها و مراجعین ثبت‌شده</p>
+                </div>
+            </div>
+            <div id="counselorDetailBody" class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                <!-- Dynamic Content -->
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <button onclick="closeCounselorDetailModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">بستن پنجره</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Details Modal (Client Booking Details) -->
     <div id="detailsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-100">
             <button onclick="closeDetailsModal()" class="absolute left-4 top-4 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
-
             <div class="flex items-center space-x-3 space-x-reverse mb-4 text-indigo-700">
                 <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
                     <i class="fa-solid fa-id-card text-2xl text-indigo-600"></i>
@@ -416,7 +543,6 @@
                     <p class="text-xs text-slate-500">اطلاعات مراجع</p>
                 </div>
             </div>
-
             <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
                 <div class="flex justify-between border-b border-slate-200 pb-2">
                     <span class="text-slate-500">نام مراجع:</span>
@@ -443,11 +569,8 @@
                     <p id="detailNotes" class="text-slate-700 text-xs bg-white p-2.5 rounded-lg border border-slate-200 min-h-[45px]">--</p>
                 </div>
             </div>
-
             <div class="mt-5">
-                <button onclick="closeDetailsModal()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition">
-                    بستن
-                </button>
+                <button onclick="closeDetailsModal()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition">بستن</button>
             </div>
         </div>
     </div>
@@ -458,7 +581,7 @@
         <span id="toastMessage">عملیات با موفقیت انجام شد</span>
     </div>
 
-    <!-- JavaScript Application Logic with Native Intl Jalali Date Conversion -->
+    <!-- JavaScript Application Logic -->
     <script>
         // JSONbin.io Configuration
         const BIN_ID = "6ad87543ac6210605a44e878";
@@ -467,101 +590,30 @@
 
         // State Management Variables
         let currentWeekOffset = 0;
-        let selectedDayIndex = 0; // 0: Sat, 1: Sun, 2: Mon, 3: Tue, 4: Wed
+        let selectedDayIndex = 0;
         let isAdminView = false;
         let selectedSlotKey = null;
         let currentLoggedInAdmin = null; 
         let globalBookingsCache = {};
 
-        // Morning & Evening Times Matrix
-        const MORNING_TIMES = [
-            "۹ الی ۹:۴۵",
-            "۱۰ الی ۱۰:۴۵",
-            "۱۱ الی ۱۱:۴۵",
-            "۱۲ الی ۱۲:۴۵"
-        ];
+        const MORNING_TIMES = ["۹ الی ۹:۴۵", "۱۰ الی ۱۰:۴۵", "۱۱ الی ۱۱:۴۵", "۱۲ الی ۱۲:۴۵"];
+        const EVENING_TIMES = ["۱۸ الی ۱۸:۴۵", "۱۹ الی ۱۹:۴۵", "۲۰ الی ۲۰:۴۵"];
 
-        const EVENING_TIMES = [
-            "۱۸ الی ۱۸:۴۵",
-            "۱۹ الی ۱۹:۴۵",
-            "۲۰ الی ۲۰:۴۵"
-        ];
-
-        // Counselor Assignments
         const DAYS_CONFIG = [
-            {
-                id: 'sat',
-                name: 'شنبه',
-                dayIndex: 0,
-                shifts: {
-                    morning: [{ id: 'sec1', name: 'خانم سوهانیان' }],
-                    evening: [{ id: 'sec1', name: 'آقای فروزش' }]
-                }
-            },
-            {
-                id: 'sun',
-                name: 'یکشنبه',
-                dayIndex: 1,
-                shifts: {
-                    morning: [{ id: 'sec1', name: 'آقای عزیزی' }],
-                    evening: [
-                        { id: 'sec1', name: 'آقای آشتیانی' },
-                        { id: 'sec2', name: 'آقای جهان‌شاهی' }
-                    ]
-                }
-            },
-            {
-                id: 'mon',
-                name: 'دوشنبه',
-                dayIndex: 2,
-                shifts: {
-                    morning: [
-                        { id: 'sec1', name: 'آقای کریم‌نژاد (تلفنی)' },
-                        { id: 'sec2', name: 'آقای آیشم' }
-                    ],
-                    evening: [{ id: 'sec1', name: 'آقای جهان‌شاهی' }]
-                }
-            },
-            {
-                id: 'tue',
-                name: 'سه‌شنبه',
-                dayIndex: 3,
-                shifts: {
-                    morning: [{ id: 'sec1', name: 'آقای طبایی‌نژاد' }],
-                    evening: [{ id: 'sec1', name: 'آقای نوبهاری' }]
-                }
-            },
-            {
-                id: 'wed',
-                name: 'چهارشنبه',
-                dayIndex: 4,
-                shifts: {
-                    morning: [{ id: 'sec1', name: 'آقای مهاجری' }],
-                    evening: [{ id: 'sec1', name: 'آقای محمدی' }]
-                }
-            }
+            { id: 'sat', name: 'شنبه', dayIndex: 0, shifts: { morning: [{ id: 'sec1', name: 'خانم سوهانیان' }], evening: [{ id: 'sec1', name: 'آقای فروزش' }] } },
+            { id: 'sun', name: 'یکشنبه', dayIndex: 1, shifts: { morning: [{ id: 'sec1', name: 'آقای عزیزی' }], evening: [{ id: 'sec1', name: 'آقای آشتیانی' }, { id: 'sec2', name: 'آقای جهان‌شاهی' }] } },
+            { id: 'mon', name: 'دوشنبه', dayIndex: 2, shifts: { morning: [{ id: 'sec1', name: 'آقای کریم‌نژاد (تلفنی)' }, { id: 'sec2', name: 'آقای آیشم' }], evening: [{ id: 'sec1', name: 'آقای جهان‌شاهی' }] } },
+            { id: 'tue', name: 'سه‌شنبه', dayIndex: 3, shifts: { morning: [{ id: 'sec1', name: 'آقای طبایی‌نژاد' }], evening: [{ id: 'sec1', name: 'آقای نوبهاری' }] } },
+            { id: 'wed', name: 'چهارشنبه', dayIndex: 4, shifts: { morning: [{ id: 'sec1', name: 'آقای مهاجری' }], evening: [{ id: 'sec1', name: 'آقای محمدی' }] } }
         ];
 
-        // Standard Native Jalali Formatter via Browser Intl API
-        const jalaliFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
-            timeZone: 'Asia/Tehran',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        const jalaliFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { timeZone: 'Asia/Tehran', year: 'numeric', month: 'long', day: 'numeric' });
+        const jalaliKeyFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' });
+        const jalaliMonthFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', { timeZone: 'Asia/Tehran', month: 'long' });
 
-        const jalaliKeyFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', {
-            timeZone: 'Asia/Tehran',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-
-        // Calculate Saturday of current/active week accurately
         function getSaturdayOfWeek(offsetWeeks) {
             const d = new Date();
-            const day = d.getDay(); // 0: Sun, 1: Mon, ... 6: Sat
-            // Days passed since last Saturday: Sat(6)->0, Sun(0)->1, Mon(1)->2, Tue(2)->3, Wed(3)->4, Thu(4)->5, Fri(5)->6
+            const day = d.getDay();
             const diffToSat = (day === 6) ? 0 : (day + 1);
             d.setDate(d.getDate() - diffToSat + (offsetWeeks * 7));
             d.setHours(12, 0, 0, 0);
@@ -575,9 +627,8 @@
             return targetDate;
         }
 
-        function formatJalaliDate(dateObj) {
-            return jalaliFormatter.format(dateObj);
-        }
+        function formatJalaliDate(dateObj) { return jalaliFormatter.format(dateObj); }
+        function getPersianMonthName(dateObj) { return jalaliMonthFormatter.format(dateObj); }
 
         function getDateKey(dateObj) {
             const parts = jalaliKeyFormatter.formatToParts(dateObj);
@@ -590,124 +641,68 @@
             return `${y}-${m}-${d}`;
         }
 
-        // Live Clock Widget Updater for Official Iran Time (Asia/Tehran)
         function updateLiveClock() {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString('fa-IR', {
-                timeZone: 'Asia/Tehran',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            });
+            const timeStr = now.toLocaleTimeString('fa-IR', { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
             const clockEl = document.getElementById('liveClockDisplay');
-            if (clockEl) {
-                clockEl.innerText = timeStr;
-            }
+            if (clockEl) clockEl.innerText = timeStr;
         }
 
-        // Fetch Data from JSONbin
         async function fetchBookingsData() {
             try {
-                const response = await fetch(JSONBIN_URL, {
-                    method: 'GET',
-                    headers: {
-                        'X-Master-Key': MASTER_KEY
-                    }
-                });
+                const response = await fetch(JSONBIN_URL, { method: 'GET', headers: { 'X-Master-Key': MASTER_KEY } });
                 if (response.ok) {
                     const data = await response.json();
                     globalBookingsCache = data.record && data.record.bookings ? data.record.bookings : {};
                 }
-            } catch (e) {
-                console.error("Error fetching data: ", e);
-            }
+            } catch (e) { console.error("Error fetching data: ", e); }
             renderWeekTabs();
             renderSelectedDaySchedule();
             if (isAdminView) {
-                renderAdminBookingsList();
+                renderActiveAdminTab();
             }
         }
 
-        // Save Data to JSONbin
         async function saveBookingsData(newBookings) {
             try {
                 const response = await fetch(JSONBIN_URL, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': MASTER_KEY
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
                     body: JSON.stringify({ bookings: newBookings })
                 });
                 if (response.ok) {
                     globalBookingsCache = newBookings;
                     renderWeekTabs();
                     renderSelectedDaySchedule();
-                    if (isAdminView) {
-                        renderAdminBookingsList();
-                    }
-                } else {
-                    showToast('خطا در ذخیره‌سازی اطلاعات', 'error');
-                }
-            } catch (e) {
-                console.error("Error saving data: ", e);
-                showToast('خطا در ارتباط با سرور', 'error');
-            }
+                    if (isAdminView) renderActiveAdminTab();
+                } else { showToast('خطا در ذخیره‌سازی اطلاعات', 'error'); }
+            } catch (e) { console.error("Error saving data: ", e); showToast('خطا در ارتباط با سرور', 'error'); }
         }
 
-        function getAllBookings() {
-            return globalBookingsCache;
-        }
+        function getAllBookings() { return globalBookingsCache; }
+        async function saveBooking(key, bookingData) { let bookings = getAllBookings(); bookings[key] = bookingData; await saveBookingsData(bookings); }
+        async function removeBooking(key) { let bookings = getAllBookings(); delete bookings[key]; await saveBookingsData(bookings); }
 
-        async function saveBooking(key, bookingData) {
-            let bookings = getAllBookings();
-            bookings[key] = bookingData;
-            await saveBookingsData(bookings);
-        }
-
-        async function removeBooking(key) {
-            let bookings = getAllBookings();
-            delete bookings[key];
-            await saveBookingsData(bookings);
-        }
-
-        // Render Navigation Tabs
         function renderWeekTabs() {
             const tabsContainer = document.getElementById('daysTabBar');
             if(!tabsContainer) return;
             tabsContainer.innerHTML = '';
-
             DAYS_CONFIG.forEach((day, index) => {
                 const dayDate = getDateForDay(currentWeekOffset, day.dayIndex);
                 const formattedDate = formatJalaliDate(dayDate);
                 const isActive = index === selectedDayIndex;
-
                 const tabBtn = document.createElement('button');
                 tabBtn.onclick = () => selectDay(index);
-                tabBtn.className = `p-2.5 sm:p-3 rounded-xl transition flex flex-col items-center justify-center text-center border ${
-                    isActive 
-                        ? 'day-tab-active' 
-                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                }`;
-
-                tabBtn.innerHTML = `
-                    <span class="font-bold text-xs sm:text-sm">${day.name}</span>
-                    <span class="text-[10px] sm:text-xs mt-0.5 opacity-80">${formattedDate}</span>
-                `;
-
+                tabBtn.className = `p-2.5 sm:p-3 rounded-xl transition flex flex-col items-center justify-center text-center border ${isActive ? 'day-tab-active' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'}`;
+                tabBtn.innerHTML = `<span class="font-bold text-xs sm:text-sm">${day.name}</span><span class="text-[10px] sm:text-xs mt-0.5 opacity-80">${formattedDate}</span>`;
                 tabsContainer.appendChild(tabBtn);
             });
-
             const satDate = getDateForDay(currentWeekOffset, 0);
             const wedDate = getDateForDay(currentWeekOffset, 4);
             const rangeDisplay = document.getElementById('weekRangeDisplay');
-            if(rangeDisplay) {
-                rangeDisplay.innerText = `${formatJalaliDate(satDate)} الی ${formatJalaliDate(wedDate)}`;
-            }
+            if(rangeDisplay) rangeDisplay.innerText = `${formatJalaliDate(satDate)} الی ${formatJalaliDate(wedDate)}`;
         }
 
-        // Render Day Schedule
         function renderSelectedDaySchedule() {
             const dayConfig = DAYS_CONFIG[selectedDayIndex];
             const dayDate = getDateForDay(currentWeekOffset, dayConfig.dayIndex);
@@ -720,24 +715,17 @@
             if(dateEl) dateEl.innerText = `تاریخ: ${formattedDate}`;
 
             const bookings = getAllBookings();
-
             const morningContainer = document.getElementById('morningShiftsContainer');
-            if(morningContainer) {
-                morningContainer.innerHTML = renderShiftSectionHtml(dateKeyStr, dayConfig.name, formattedDate, 'morning', dayConfig.shifts.morning, MORNING_TIMES, bookings);
-            }
+            if(morningContainer) morningContainer.innerHTML = renderShiftSectionHtml(dateKeyStr, dayConfig.name, formattedDate, 'morning', dayConfig.shifts.morning, MORNING_TIMES, bookings);
 
             const eveningContainer = document.getElementById('eveningShiftsContainer');
-            if(eveningContainer) {
-                eveningContainer.innerHTML = renderShiftSectionHtml(dateKeyStr, dayConfig.name, formattedDate, 'evening', dayConfig.shifts.evening, EVENING_TIMES, bookings);
-            }
+            if(eveningContainer) eveningContainer.innerHTML = renderShiftSectionHtml(dateKeyStr, dayConfig.name, formattedDate, 'evening', dayConfig.shifts.evening, EVENING_TIMES, bookings);
         }
 
         function renderShiftSectionHtml(dateKey, dayName, formattedDate, shiftType, counselors, timeList, bookings) {
             let html = '';
-
             counselors.forEach(counselor => {
                 const isMultiSection = counselors.length > 1;
-
                 html += `
                     <div class="bg-white/90 p-3.5 rounded-xl border border-slate-200 shadow-sm">
                         <div class="text-xs sm:text-sm font-bold text-slate-800 mb-3 flex items-center justify-between border-b border-slate-100 pb-2">
@@ -749,12 +737,10 @@
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 `;
-
                 timeList.forEach(time => {
                     const slotKey = `${dateKey}_${shiftType}_${counselor.id}_${time}`;
                     const booking = bookings[slotKey];
                     const isBooked = !!booking;
-
                     if (isBooked) {
                         html += `
                             <button onclick="handleSlotClick('${slotKey}', '${dayName} ${formattedDate}', '${time}', '${counselor.name}', true)" 
@@ -768,9 +754,7 @@
                                         <i class="fa-solid fa-user text-[10px] ml-1"></i>${booking.clientName}
                                     </div>
                                 </div>
-                                <span class="text-[10px] bg-rose-200/80 text-rose-800 px-2 py-0.5 rounded-md font-bold whitespace-nowrap">
-                                    رزرو شده
-                                </span>
+                                <span class="text-[10px] bg-rose-200/80 text-rose-800 px-2 py-0.5 rounded-md font-bold whitespace-nowrap">رزرو شده</span>
                             </button>
                         `;
                     } else {
@@ -781,37 +765,23 @@
                                     <i class="fa-regular fa-clock text-xs text-slate-400 group-hover:text-emerald-600"></i>
                                     <span>${time}</span>
                                 </span>
-                                <span class="text-[10px] text-emerald-700 bg-white border border-emerald-300 px-2 py-0.5 rounded font-bold group-hover:bg-emerald-600 group-hover:text-white transition">
-                                    آزاد / رزرو
-                                </span>
+                                <span class="text-[10px] text-emerald-700 bg-white border border-emerald-300 px-2 py-0.5 rounded font-bold group-hover:bg-emerald-600 group-hover:text-white transition">آزاد / رزرو</span>
                             </button>
                         `;
                     }
                 });
-
-                html += `
-                        </div>
-                    </div>
-                `;
+                html += `</div></div>`;
             });
-
             return html;
         }
 
-        // Toggle View Mode & Admin Authentication Control
         function handleViewToggleClick() {
-            if (!isAdminView) {
-                if (!currentLoggedInAdmin) {
-                    openAdminLoginModal();
-                    return;
-                }
-            }
+            if (!isAdminView && !currentLoggedInAdmin) { openAdminLoginModal(); return; }
             toggleViewMode();
         }
 
         function toggleViewMode() {
             isAdminView = !isAdminView;
-
             const bookingSec = document.getElementById('bookingViewSection');
             const adminSec = document.getElementById('adminViewSection');
             const label = document.getElementById('viewToggleLabel');
@@ -823,7 +793,7 @@
                 label.innerText = 'بازگشت به صفحه رزرو';
                 icon.className = 'fa-solid fa-arrow-right-from-bracket';
                 document.getElementById('currentAdminNameDisplay').innerText = currentLoggedInAdmin;
-                renderAdminBookingsList();
+                switchAdminTab('list');
             } else {
                 adminSec.classList.add('hidden');
                 bookingSec.classList.remove('hidden');
@@ -833,65 +803,80 @@
             }
         }
 
-        // Admin Login Handlers
         function openAdminLoginModal() {
             document.getElementById('adminUsernameInput').value = '';
             document.getElementById('adminPasswordInput').value = '';
             document.getElementById('adminLoginModal').classList.remove('hidden');
         }
-
-        function closeAdminLoginModal() {
-            document.getElementById('adminLoginModal').classList.add('hidden');
-        }
+        function closeAdminLoginModal() { document.getElementById('adminLoginModal').classList.add('hidden'); }
 
         function handleAdminLoginSubmit(e) {
             e.preventDefault();
             const user = document.getElementById('adminUsernameInput').value.trim();
             const pass = document.getElementById('adminPasswordInput').value.trim();
-
             if ((user === 'عماد' && pass === 'emad1384') || (user === 'سلطانی' && pass === 'Aa123456')) {
                 currentLoggedInAdmin = user;
                 closeAdminLoginModal();
                 toggleViewMode();
                 showToast(`خوش آمدید، ${user}`);
-            } else {
-                showToast('نام کاربری یا رمز عبور اشتباه است', 'error');
+            } else { showToast('نام کاربری یا رمز عبور اشتباه است', 'error'); }
+        }
+
+        // Admin Sub-Tabs Navigation
+        let currentAdminTab = 'list';
+        function switchAdminTab(tabName) {
+            currentAdminTab = tabName;
+            document.getElementById('adminSubTabList').classList.add('hidden');
+            document.getElementById('adminSubTabCounselors').classList.add('hidden');
+            document.getElementById('adminSubTabExport').classList.add('hidden');
+
+            document.getElementById('adminTabListBtn').className = 'flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition text-slate-700 bg-white hover:bg-slate-50 border border-slate-200';
+            document.getElementById('adminTabCounselorsBtn').className = 'flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition text-slate-700 bg-white hover:bg-slate-50 border border-slate-200';
+            document.getElementById('adminTabExportBtn').className = 'flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition text-slate-700 bg-white hover:bg-slate-50 border border-slate-200';
+
+            if (tabName === 'list') {
+                document.getElementById('adminSubTabList').classList.remove('hidden');
+                document.getElementById('adminTabListBtn').className = 'flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition admin-tab-active';
+                renderAdminBookingsList();
+            } else if (tabName === 'counselors') {
+                document.getElementById('adminSubTabCounselors').classList.remove('hidden');
+                document.getElementById('adminTabCounselorsBtn').className = 'flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition admin-tab-active';
+                renderCounselorsPerformance();
+            } else if (tabName === 'export') {
+                document.getElementById('adminSubTabExport').classList.remove('hidden');
+                document.getElementById('adminTabExportBtn').className = 'flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition admin-tab-active';
             }
         }
 
-        // Render Admin Panel Bookings List
+        function renderActiveAdminTab() {
+            if (currentAdminTab === 'list') renderAdminBookingsList();
+            else if (currentAdminTab === 'counselors') renderCounselorsPerformance();
+        }
+
         function renderAdminBookingsList() {
             const bookings = getAllBookings();
             const tableBody = document.getElementById('adminTableBody');
             const emptyState = document.getElementById('emptyAdminState');
-            const searchInput = document.getElementById('adminSearchInput');
-            const dayFilter = document.getElementById('adminDayFilter');
+            const searchVal = document.getElementById('adminSearchInput').value.trim().toLowerCase();
+            const dayFilterVal = document.getElementById('adminDayFilter').value;
             
             if(!tableBody) return;
-            const searchVal = searchInput ? searchInput.value.trim().toLowerCase() : '';
-            const dayFilterVal = dayFilter ? dayFilter.value : 'ALL';
-
             tableBody.innerHTML = '';
             let count = 0;
-
             const sortedKeys = Object.keys(bookings).sort();
 
             sortedKeys.forEach((key) => {
                 const booking = bookings[key];
-                
                 const parts = key.split('_');
-                const dateStr = parts[0]; 
                 const timeStr = parts[3];
-
                 const counselorName = booking.counselorName || 'مشاور مرکز';
                 const dayName = booking.dayName || '---';
-                const fullDateStr = booking.fullDateStr || dateStr;
+                const fullDateStr = booking.fullDateStr || parts[0];
 
                 if (dayFilterVal !== 'ALL' && dayName !== dayFilterVal) return;
                 if (searchVal && !booking.clientName.toLowerCase().includes(searchVal) && !booking.clientPhone.includes(searchVal)) return;
 
                 count++;
-
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-slate-50 transition border-b border-slate-100';
                 row.innerHTML = `
@@ -910,15 +895,165 @@
                 tableBody.appendChild(row);
             });
 
-            const totalCountEl = document.getElementById('totalBookingsCount');
-            if(totalCountEl) totalCountEl.innerText = count;
-
-            if (count === 0) {
-                emptyState.classList.remove('hidden');
-            } else {
-                emptyState.classList.add('hidden');
-            }
+            document.getElementById('totalBookingsCount').innerText = count;
+            if (count === 0) emptyState.classList.remove('hidden'); else emptyState.classList.add('hidden');
         }
+
+        // Render Counselors Performance Summary
+        function renderCounselorsPerformance() {
+            const bookings = getAllBookings();
+            const selectedMonth = document.getElementById('counselorMonthSelect').value;
+            const container = document.getElementById('counselorsPerformanceContainer');
+            container.innerHTML = '';
+
+            let counselorStats = {};
+
+            Object.keys(bookings).forEach(key => {
+                const b = bookings[key];
+                const cName = b.counselorName || 'مشاور مرکز';
+                const dateStr = b.fullDateStr || '';
+
+                if (selectedMonth !== 'ALL' && !dateStr.includes(selectedMonth)) return;
+
+                if (!counselorStats[cName]) {
+                    counselorStats[cName] = { totalClients: 0, totalHours: 0, appointments: [] };
+                }
+                counselorStats[cName].totalClients++;
+                counselorStats[cName].totalHours += 0.75; // هر جلسه ۴۵ دقیقه معادل ۰.۷۵ ساعت
+                counselorStats[cName].appointments.push(b);
+            });
+
+            if (Object.keys(counselorStats).length === 0) {
+                container.innerHTML = `<div class="col-span-2 p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 text-xs">هیچ آماری برای این ماه ثبت نشده است.</div>`;
+                return;
+            }
+
+            Object.keys(counselorStats).forEach(cName => {
+                const stat = counselorStats[cName];
+                const card = document.createElement('div');
+                card.className = 'glass-card rounded-2xl p-4 shadow-sm space-y-3 flex flex-col justify-between';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div class="flex items-center space-x-2.5 space-x-reverse">
+                            <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-user-doctor"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-800 text-sm">${cName}</h4>
+                        </div>
+                        <span class="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-lg">${selectedMonth === 'ALL' ? 'مجموع کل' : selectedMonth}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
+                            <span class="text-slate-500 block text-[10px]">تعداد مراجعین</span>
+                            <strong class="text-indigo-900 text-base font-extrabold">${stat.totalClients} نفر</strong>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
+                            <span class="text-slate-500 block text-[10px]">مجموع تایم مشاوره</span>
+                            <strong class="text-emerald-700 text-base font-extrabold">${stat.totalHours} ساعت</strong>
+                        </div>
+                    </div>
+                    <button onclick='openCounselorDetailModal("${cName}", ${JSON.stringify(stat.appointments)})' class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition flex items-center justify-center space-x-1.5 space-x-reverse">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>مشاهده جزئیات مراجعین</span>
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openCounselorDetailModal(cName, appointments) {
+            document.getElementById('counselorDetailTitle').innerText = `جزئیات عملکرد: ${cName}`;
+            const body = document.getElementById('counselorDetailBody');
+            body.innerHTML = '';
+
+            if (appointments.length === 0) {
+                body.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">هیچ نوبتی ثبت نشده است.</p>`;
+            } else {
+                appointments.forEach((app, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1.5';
+                    item.innerHTML = `
+                        <div class="flex justify-between font-bold text-slate-800">
+                            <span>${idx + 1}. مراجع: ${app.clientName}</span>
+                            <span class="text-indigo-600" dir="ltr">${app.clientPhone}</span>
+                        </div>
+                        <div class="flex justify-between text-slate-500 text-[11px]">
+                            <span>روز و تاریخ: ${app.dayName} (${app.fullDateStr})</span>
+                            <span class="font-bold text-indigo-900">ساعت: ${app.timeStr}</span>
+                        </div>
+                        ${app.notes ? `<div class="text-[11px] text-slate-600 bg-white p-1.5 rounded border border-slate-100">توضیحات: ${app.notes}</div>` : ''}
+                    `;
+                    body.appendChild(item);
+                });
+            }
+            document.getElementById('counselorDetailModal').classList.remove('hidden');
+        }
+
+        function closeCounselorDetailModal() { document.getElementById('counselorDetailModal').classList.add('hidden'); }
+
+        // Generate Export Report
+        function generateExportReport() {
+            const selectedMonth = document.getElementById('exportMonthSelect').value;
+            const bookings = getAllBookings();
+            const container = document.getElementById('exportResultContainer');
+            container.classList.remove('hidden');
+
+            let totalBookingsCount = 0;
+            let counselorStats = {};
+
+            Object.keys(bookings).forEach(key => {
+                const b = bookings[key];
+                const cName = b.counselorName || 'مشاور مرکز';
+                const dateStr = b.fullDateStr || '';
+
+                if (selectedMonth !== 'ALL' && !dateStr.includes(selectedMonth)) return;
+
+                totalBookingsCount++;
+                if (!counselorStats[cName]) counselorStats[cName] = { count: 0, hours: 0 };
+                counselorStats[cName].count++;
+                counselorStats[cName].hours += 0.75;
+            });
+
+            let html = `
+                <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm">گزارش رسمی عملکرد مرکز مشاوره</h4>
+                        <p class="text-[11px] text-slate-500">بازه گزارش: ${selectedMonth === 'ALL' ? 'تمامی ماه‌ها' : 'ماه ' + selectedMonth}</p>
+                    </div>
+                    <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-xl border border-indigo-100">مجموع کل نوبت‌ها: ${totalBookingsCount}</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-xs">
+                        <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">نام مشاور</th>
+                                <th class="p-3 text-center">تعداد مراجعین</th>
+                                <th class="p-3 text-center">مجموع ساعت مشاوره</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+            `;
+
+            if (Object.keys(counselorStats).length === 0) {
+                html += `<tr><td colspan="3" class="p-6 text-center text-slate-400">هیچ داده‌ای در این بازه یافت نشد.</td></tr>`;
+            } else {
+                Object.keys(counselorStats).forEach(cName => {
+                    const st = counselorStats[cName];
+                    html += `
+                        <tr>
+                            <td class="p-3 font-bold text-slate-800">${cName}</td>
+                            <td class="p-3 text-center font-bold text-indigo-700">${st.count} نفر</td>
+                            <td class="p-3 text-center font-bold text-emerald-700">${st.hours} ساعت</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
+        }
+
+        function printExportReport() { window.print(); }
 
         async function cancelBookingFromAdmin(key) {
             if (confirm('آیا از لغو این نوبت اطمینان دارید؟')) {
@@ -934,67 +1069,87 @@
             }
         }
 
-        // Actions and Handlers
-        function selectDay(index) {
-            selectedDayIndex = index;
-            renderWeekTabs();
-            renderSelectedDaySchedule();
-        }
+        function selectDay(index) { selectedDayIndex = index; renderWeekTabs(); renderSelectedDaySchedule(); }
+        function changeWeek(direction) { currentWeekOffset += direction; renderWeekTabs(); renderSelectedDaySchedule(); }
+        function resetToCurrentWeek() { currentWeekOffset = 0; renderWeekTabs(); renderSelectedDaySchedule(); }
 
-        function changeWeek(direction) {
-            currentWeekOffset += direction;
-            renderWeekTabs();
-            renderSelectedDaySchedule();
-        }
-
-        function resetToCurrentWeek() {
-            currentWeekOffset = 0;
-            renderWeekTabs();
-            renderSelectedDaySchedule();
-        }
-
+        // Quick Previous Clients Logic in Booking Modal
         function handleSlotClick(slotKey, fullDateStr, time, counselorName, isBooked) {
             selectedSlotKey = slotKey;
-
             if (isBooked) {
                 const bookings = getAllBookings();
                 const booking = bookings[slotKey];
-                
                 document.getElementById('detailClientName').innerText = booking.clientName;
                 document.getElementById('detailClientPhone').innerText = booking.clientPhone;
                 document.getElementById('detailDate').innerText = fullDateStr;
                 document.getElementById('detailTime').innerText = time;
                 document.getElementById('detailCounselor').innerText = counselorName;
                 document.getElementById('detailNotes').innerText = booking.notes || 'بدون توضیح ثبت شده';
-
                 document.getElementById('detailsModal').classList.remove('hidden');
             } else {
                 document.getElementById('modalDate').innerText = fullDateStr;
                 document.getElementById('modalTime').innerText = time;
                 document.getElementById('modalCounselor').innerText = counselorName;
-                
                 document.getElementById('clientName').value = '';
                 document.getElementById('clientPhone').value = '';
                 document.getElementById('clientNotes').value = '';
-
+                document.getElementById('previousClientsDropdownContainer').classList.add('hidden');
+                renderPreviousClientsList();
                 document.getElementById('bookingModal').classList.remove('hidden');
             }
         }
 
+        function renderPreviousClientsList() {
+            const bookings = getAllBookings();
+            const container = document.getElementById('previousClientsDropdownContainer');
+            container.innerHTML = '';
+            
+            let uniqueClients = {};
+            Object.keys(bookings).forEach(k => {
+                const b = bookings[k];
+                if (b.clientName && b.clientPhone) {
+                    uniqueClients[b.clientPhone] = { name: b.clientName, phone: b.clientPhone };
+                }
+            });
+
+            const clientKeys = Object.keys(uniqueClients);
+            if (clientKeys.length === 0) {
+                container.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-2">هنوز مراجعی ثبت نشده است.</p>`;
+                return;
+            }
+
+            clientKeys.forEach(phone => {
+                const c = uniqueClients[phone];
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => selectPreviousClient(c.name, c.phone);
+                btn.className = 'w-full text-right p-2 bg-white hover:bg-indigo-100 text-slate-700 rounded-lg text-xs transition flex items-center justify-between border border-indigo-100';
+                btn.innerHTML = `<span class="font-bold">${c.name}</span><span class="text-indigo-600 font-mono" dir="ltr">${c.phone}</span>`;
+                container.appendChild(btn);
+            });
+        }
+
+        function togglePreviousClientsList() {
+            const box = document.getElementById('previousClientsDropdownContainer');
+            box.classList.toggle('hidden');
+        }
+
+        function selectPreviousClient(name, phone) {
+            document.getElementById('clientName').value = name;
+            document.getElementById('clientPhone').value = phone;
+            document.getElementById('previousClientsDropdownContainer').classList.add('hidden');
+            showToast(`مشخصات ${name} جایگذاری شد`);
+        }
+
         async function handleBookingSubmit(e) {
             e.preventDefault();
-
             const name = document.getElementById('clientName').value.trim();
             const phone = document.getElementById('clientPhone').value.trim();
             const notes = document.getElementById('clientNotes').value.trim();
-
             const dayConfig = DAYS_CONFIG[selectedDayIndex];
             const dayDate = getDateForDay(currentWeekOffset, dayConfig.dayIndex);
 
-            if (!name || !phone) {
-                showToast('لطفاً نام و شماره تماس مراجع را وارد کنید', 'error');
-                return;
-            }
+            if (!name || !phone) { showToast('لطفاً نام و شماره تماس مراجع را وارد کنید', 'error'); return; }
 
             const bookingData = {
                 clientName: name,
@@ -1012,40 +1167,25 @@
             showToast('نوبت با موفقیت ثبت گردید');
         }
 
-        function closeModal() {
-            document.getElementById('bookingModal').classList.add('hidden');
-        }
-
-        function closeDetailsModal() {
-            document.getElementById('detailsModal').classList.add('hidden');
-        }
+        function closeModal() { document.getElementById('bookingModal').classList.add('hidden'); }
+        function closeDetailsModal() { document.getElementById('detailsModal').classList.add('hidden'); }
 
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             const toastMsg = document.getElementById('toastMessage');
             const toastIcon = document.getElementById('toastIcon');
-
             toastMsg.innerText = message;
-
-            if (type === 'error') {
-                toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-400 text-lg';
-            } else {
-                toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-lg';
-            }
-
+            if (type === 'error') toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-400 text-lg';
+            else toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-lg';
             toast.classList.remove('translate-y-20', 'opacity-0');
-            
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
         }
 
-        // Initialize App and Live Iran Clock on Load
         window.onload = function() {
             fetchBookingsData();
             updateLiveClock();
-            setInterval(updateLiveClock, 1000); // Update clock every second
-            setInterval(fetchBookingsData, 10000); // Auto sync data every 10 seconds
+            setInterval(updateLiveClock, 1000);
+            setInterval(fetchBookingsData, 10000);
         };
     </script>
 </body>
